@@ -236,7 +236,7 @@ module retireControlUnit (
     assign take_exception = !interrupt_pending&(excp_excp_valid|(backendException&!exception_code[4]))&!mem_block_i&!empty&(retire_control_state==Normal);
     assign tmu_go_to_S = take_interrupt ? ~new_priv_i[1] : ~new_priv_e[1];
     assign tmu_epc_o = currentPC; assign tmu_mcause_o = take_interrupt ? int_type : excp_excp_valid ? excp_excp_code : exception_code[3:0];
-    assign tmu_mtval_o = exception_addr;
+    assign tmu_mtval_o = backendException ? relavant_address : excp_excp_code[3:1]==0 ? currentPC : 0;
     assign altcommit = ((backendException&exception_code[4])||((|excp_special)&&((excp_special[3]&(partial_retire ? rob1_status_i : rob0_status_i))||!excp_special[3])))
     && (retire_control_state==Normal)&!mem_block_i&!empty&!interrupt_pending;
     reg btb_mod;

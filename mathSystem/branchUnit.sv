@@ -110,6 +110,7 @@ module branchUnit (
         else if (!(wrongful_branch|wrongful_nbranch|wrongful_target|wrongful_type|wrongful_bm) && brnch_res && !flush_i && valid_i) begin
             c1_btb_way_o <= btb_way_i;
             c1_btb_bm_mod_o <= 1;
+            c1_btb_vpc_o <= pc;
             rcu_excp_o <= 0;
         end
         else begin
