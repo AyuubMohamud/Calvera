@@ -111,7 +111,7 @@ module loadQueue (
     {16'h0000, root_mem_data[15:0]}) : nx2_addr[1:0]==2'b00 ? {24'h000000,root_mem_data[7:0]} : nx2_addr[1:0]==2'b01 ? {24'h000000,root_mem_data[15:8]} : nx2_addr[1:0]==2'b10 ? {24'h000000,root_mem_data[23:16]} :
     {24'h000000,root_mem_data[31:24]};
     assign load_valid_o = flush_i ? 1'b0 : (dc_cmp&!dc_addr[31])|(lsu_vld&this_cycle_from_lsu&!busy&!rob_lock&!current_req_miss);
-    assign ciff_o = (nx2_vd)|(lsu_lock&dc_cmp&dc_addr[31]);
+    assign ciff_o = (nx2_vd);
     always_ff @(posedge cpu_clock_i) begin
         nx2_vd <= flush_i ? 1'b0 : (dc_cmp)|(lsu_vld&this_cycle_from_lsu&!busy&!rob_lock&!current_req_miss);
         nx2_dest <= dc_cmp ? mlsu_dest : lsu_dest;

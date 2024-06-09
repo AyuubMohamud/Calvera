@@ -315,5 +315,5 @@ module storeBuffer #(parameter PHYS = 32) (
     end
     assign no_nonspec = !(|((~speculative)&vld));// inner expression 1 when there are valid instructions that are not speculative, since the other modules use
     // store buffer empty, store buffer empty is high when inner expression is 0
-    assign complete_vld = working_valid; assign complete = working_enqueue_rob_i;
+    assign complete_vld = working_valid&!enqueue_full; assign complete = working_enqueue_rob_i;
 endmodule

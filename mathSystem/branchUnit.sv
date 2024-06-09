@@ -99,7 +99,7 @@ module branchUnit (
         wb_dest_o <= dest_i;
         rob_o <= rob_id_i;
         if ((wrongful_branch|wrongful_nbranch|wrongful_target|wrongful_type|wrongful_bm)&& !flush_i && valid_i) begin
-            rcu_excp_o <= ~(|excp_addr[1:0]);
+            rcu_excp_o <= 1;
             c1_btb_vpc_o <= pc;
             c1_btb_target_o <= excp_addr; //! SIP Target **if** taken
             c1_cntr_pred_o <= bm_pred_i;  //! Bimodal counter prediction,
