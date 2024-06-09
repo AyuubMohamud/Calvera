@@ -59,7 +59,7 @@ module tmu #(parameter HARTID = 0) (
     reg [31:0] mconfigptr = 0; localparam MCONFIGPTR = 12'hF15;
 
     reg [31:0] mstatus = 0; localparam MSTATUS = 12'h300; 
-    reg [31:0] misa = 32'h80001101; localparam MISA = 12'h301;
+    reg [31:0] misa = 32'h40141100; localparam MISA = 12'h301;
     reg [31:0] medeleg = 0; localparam MEDELEG = 12'h302;
     reg [31:0] mideleg = 0; localparam MIDELEG = 12'h303;
     reg [31:0] mie = 0; localparam MIE = 12'h304;
