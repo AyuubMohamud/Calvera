@@ -253,20 +253,20 @@ module rename (
     assign ms_rn_btb_pack = rcu_pack[3:0];
     assign ms_rn_btb_wen = cyc_valid&!busy;
     assign ms_p0_data_o = {(btb_vld&!btb_idx)||((|ins0_alu_type[4:1])|(!ins0_alu_type_i[0])), p0_phys_reg, p1_phys_reg, {rcu_pack,1'b0}};
-    assign ms_p0_vld_o = !ins0_port&!ins0_dnagn&!ins0_excp_valid&cyc_valid&!busy&!ins0_mov_elim;
+    assign ms_p0_vld_o = (!ins0_port|(btb_vld&!btb_idx))&!ins0_dnagn&!ins0_excp_valid&cyc_valid&!busy&!ins0_mov_elim;
     assign ms_p0_rs1_vld_o = ins0_reg_props[1]&!(ms_rn_btb_correct_o&!btb_idx&btb_vld);
     assign ms_p0_rs2_vld_o = ins0_reg_props[0]&!(ms_rn_btb_correct_o&!btb_idx&btb_vld);
     assign ms_p0_rs1_rdy = r0_i;
     assign ms_p0_rs2_rdy = r1_i;
     assign ms_p1_data_o = {(btb_vld&btb_idx)||((|ins1_alu_type[4:1])|(!ins1_alu_type_i[0])), p2_phys_reg, p3_phys_reg, {rcu_pack,1'b1}};
-    assign ms_p1_vld_o = !ins1_port&!ins1_dnagn&!ins1_excp_valid&ins1_valid&cyc_valid&!busy&!ins1_mov_elim;
+    assign ms_p1_vld_o = (!ins1_port|(btb_vld&btb_idx))&!ins1_dnagn&!ins1_excp_valid&ins1_valid&cyc_valid&!busy&!ins1_mov_elim;
     assign ms_p1_rs1_vld_o = ins1_reg_props[1]&!(ms_rn_btb_correct_o&btb_idx&btb_vld);
     assign ms_p1_rs2_vld_o = ins1_reg_props[0]&!(ms_rn_btb_correct_o&btb_idx&btb_vld);
     assign ms_p1_rs1_rdy = r2_i;
     assign ms_p1_rs2_rdy = r3_i;
     assign rcu_packet_pc=insbundle_pc;
     assign rcu_ins0_is_mov_elim=ins0_mov_elim;
-    assign rcu_ins0_register_allocated=(ins0_reg_props[2]&!ins0_mov_elim)&!ins0_excp_valid&!(ins0_dest==0);
+    assign rcu_ins0_register_allocated=(ins0_reg_props[2]&!ins0_mov_elim)&!ins0_excp_valid&!(ins0_dest==0)&!(ms_rn_btb_correct_o&!btb_idx&btb_vld);
     assign rcu_ins0_arch_reg=ins0_dest;
     assign rcu_ins0_old_preg=p4_phys_reg;
     assign rcu_ins0_new_preg=w0_phys_reg;
@@ -275,7 +275,7 @@ module rename (
     assign rcu_ins0_special=ins0_special;
     assign rcu_ins0_is_store=ins0_port&!ins0_dnagn&ins0_ios_type[3]&!ins0_excp_valid;
     assign rcu_ins1_is_mov_elim=ins1_mov_elim;
-    assign rcu_ins1_register_allocated=(ins1_reg_props[2]&!ins1_mov_elim)&!ins1_excp_valid&!(ins1_dest==0)&&ins1_valid;
+    assign rcu_ins1_register_allocated=(ins1_reg_props[2]&!ins1_mov_elim)&!ins1_excp_valid&!(ins1_dest==0)&&ins1_valid&!(ms_rn_btb_correct_o&btb_idx&btb_vld);
     assign rcu_ins1_arch_reg=ins1_dest;
     assign rcu_ins1_old_preg=(rcu_ins0_arch_reg==rcu_ins1_arch_reg)&&(rcu_ins0_is_mov_elim|rcu_ins0_register_allocated) ? rcu_ins0_new_preg : p5_phys_reg;
     assign rcu_ins1_new_preg=w1_phys_reg;
@@ -309,6 +309,6 @@ module rename (
     assign p0_busy_vld_o = w0_we&!ins0_mov_elim;
     assign p1_vec_indx_o = w1_phys_reg;
     assign p1_busy_vld_o = w1_we&!ins1_mov_elim;
-    assign o_rd0 = !(memSys_full|(ms_p0_busy_i|ms_p1_busy_i)|rcu_busy|flush_i)&cyc_valid&ins0_reg_props[2]&!ins0_mov_elim&!ins0_excp_valid;
-    assign o_rd1 = !(memSys_full|(ms_p0_busy_i|ms_p1_busy_i)|rcu_busy|flush_i)&cyc_valid&ins1_reg_props[2]&!ins1_mov_elim&ins1_valid&!ins1_excp_valid;
+    assign o_rd0 = !(memSys_full|(ms_p0_busy_i|ms_p1_busy_i)|rcu_busy|flush_i)&cyc_valid&ins0_reg_props[2]&!ins0_mov_elim&!ins0_excp_valid&!(ms_rn_btb_correct_o&!btb_idx&btb_vld);
+    assign o_rd1 = !(memSys_full|(ms_p0_busy_i|ms_p1_busy_i)|rcu_busy|flush_i)&cyc_valid&ins1_reg_props[2]&!ins1_mov_elim&ins1_valid&!ins1_excp_valid&!(ms_rn_btb_correct_o&btb_idx&btb_vld);
 endmodule

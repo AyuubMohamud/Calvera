@@ -60,6 +60,7 @@ module EX00 (
     assign rs1_o = data_i[11:6];
     assign rs2_o = data_i[17:12];
     initial wakeup_valid = 0; initial alu_valid = 0;
+    wire btb_correct = btb_correct_i&(btb_idx_i==(pc_i[2]?1'b1:data_i[0]))&&btb_vld_i;
     always_ff @(posedge cpu_clock_i) begin
         if (valid_i&!flush_i) begin
             alu_a <= rs1_data_i;
@@ -67,7 +68,7 @@ module EX00 (
             alu_opc <= opcode_i;
             alu_rob_id <= data_i[4:0];
             alu_dest <= dest_i;
-            alu_valid <= ins_type[0];
+            alu_valid <= ins_type[0]&!btb_correct;
             bnch_operand_1 <= rs1_data_i; bnch_operand_2 <= rs2_data_i;
             bnch_offset <= immediate_i; bnch_pc <= {pc_i[31:3], pc_i[2] ? 1'b1 : data_i[0], pc_i[1:0]};
             bnch_auipc <= ins_type[4]; bnch_lui <= ins_type[3]; bnch_jal <= ins_type[1]; bnch_jalr <= ins_type[2];
@@ -75,11 +76,11 @@ module EX00 (
             bnch_btype_o <= btype_i;
             bnch_btb_vld_o <= btb_vld_i&(btb_idx_i==(pc_i[2] ? 1'b1 : data_i[0]));
             bnch_btb_target_o <= btb_target_i;
-            bnch_btb_correct_o <= btb_correct_i&(btb_idx_i==(pc_i[2]?1'b1:data_i[0]))&&btb_vld_i;
+            bnch_btb_correct_o <= btb_correct;
             bnch_btb_way_o <= btb_way_i; // mask off appropriately
             wakeup_dest <= dest_i;
-            bnch_valid_o <= (|ins_type[4:1])||!ins_type[0];
-            wakeup_valid <= |ins_type;
+            bnch_valid_o <= ((|ins_type[4:1])||!ins_type[0])|btb_correct;
+            wakeup_valid <= (|ins_type)&!btb_correct;
         end else begin
             alu_valid <= 0; bnch_valid_o <= 0;
         end
