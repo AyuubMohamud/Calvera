@@ -133,7 +133,6 @@ module memorySystem (
     wire logic [29:0] store_address;
     wire logic [31:0] store_data;
     wire logic [3:0]  store_bm;
-    wire logic        store_io;
     wire logic        store_valid;
     wire store_buffer_empty;
     wire logic  [2:0]       opcode_i;
@@ -144,6 +143,7 @@ module memorySystem (
          logic  [31:0]      result_o;
          logic              wb_valid_o;
     wire memsched_we; wire [31:0] memsched_data; wire [5:0] memsched_dest;
+    wire dcache_flush, dcache_resp;
     memory_scheduler port2 (cpu_clk_i, flush_i, renamer_pkt_vld_i, pkt0_rs1_i, pkt0_rs2_i, pkt0_dest_i, pkt0_immediate_i, pkt0_ios_type_i, pkt0_ios_opcode_i, 
     pkt0_rob_i, pkt0_vld_i, pkt1_rs1_i, pkt1_rs2_i, pkt1_dest_i, pkt1_immediate_i, pkt1_ios_type_i, pkt1_ios_opcode_i, pkt1_vld_i,full,rs1_data,rs1_o,rs2_data,rs2_o,
     r4_vec_indx_o,r4_i,r5_vec_indx_o,r5_i,lsu_busy,lsu_vld,lsu_rob,lsu_op,lsu_data,lsu_addr,
@@ -154,7 +154,8 @@ module memorySystem (
     busy_o,
     result_o,
     wb_valid_o,tmu_data_o,tmu_address_o,tmu_opcode_o,tmu_wr_en,tmu_valid_o,tmu_done_i,tmu_excp_i,
-    tmu_data_i, store_buffer_empty, rob_lock, rob_oldest_i, agu_completed_rob_id, agu_completion_valid, agu_exception, agu_exception_rob,agu_exception_code, memsched_we, memsched_data, memsched_dest);
+    tmu_data_i, store_buffer_empty, rob_lock, rob_oldest_i, agu_completed_rob_id, agu_completion_valid, agu_exception, agu_exception_rob,agu_exception_code, 
+    memsched_we, memsched_data, memsched_dest,dcache_flush, dcache_resp);
     complex_unit cu0 (cpu_clk_i, flush_i, opcode_i,operand1_i,operand2_i,valid_i,busy_o,result_o,wb_valid_o);
     AGU0 agu (cpu_clk_i, flush_i, lsu_busy,lsu_vld,lsu_rob,lsu_op,lsu_data,lsu_addr,lsu_dest,
     virt_addr_o,virt_addr_vld_o,isWrite_o,translated_addr_i,excp_code_i,excp_code_vld_i,ans_vld_i,
@@ -162,12 +163,11 @@ module memorySystem (
     excp_pc,excp_valid,excp_code,excp_rob);
 
     storeBuffer #(.PHYS(32)) storeBuffer0 (cpu_clk_i, flush_i, enqueue_address,enqueue_data,enqueue_bm,enqueue_io, enqueue_en, enqueue_rob, enqueue_full, ins_rob, ins_cmp,commit0, commit1,
-    conflict_address, conflict_bm, conflict_data_c,conflict_bm_c,conflict_resolvable,conflict_res_valid,cache_done,store_address,store_data,store_bm,store_io,store_valid,
+    conflict_address, conflict_bm, conflict_data_c,conflict_bm_c,conflict_resolvable,conflict_res_valid,cache_done,store_address,store_data,store_bm,store_valid,
     store_buffer_empty);
     wire        bram_rd_en;
-    wire [11:0] bram_rd_addr;
+    wire [10:0] bram_rd_addr;
     wire [31:0] bram_rd_data;
-    wire        load_valid;
     wire [23:0] load_cache_set;
     wire        load_set_valid;
     wire        load_set;
@@ -182,13 +182,13 @@ module memorySystem (
     wire logic [5:0]  lq_rob_cmp;
     wire logic         lq_cmp;
     loadQueue lq (cpu_clk_i, flush_i, lq_valid, lq_rob, lq_ld_type, lq_addr, lq_dest, lq_full, conflict_data_c, conflict_bm_c, 
-    conflict_resolvable, conflict_res_valid, bram_rd_en,bram_rd_addr,bram_rd_data,load_valid,load_cache_set,load_set_valid,load_set,dc_req,dc_addr,dc_op,dc_data,
+    conflict_resolvable, conflict_res_valid, bram_rd_en,bram_rd_addr,bram_rd_data,load_cache_set,load_set_valid,load_set,dc_req,dc_addr,dc_op,dc_data,
     dc_cmp, lq_wr,lq_wr_data,lq_wr_en,lq_rob_cmp,lq_cmp, rob_lock, lsu_lock, rob_oldest_i, store_buffer_empty);
 
-    dcache datacache (cpu_clk_i, cache_done, store_address,store_data,store_bm,store_io,store_valid, dc_req,dc_addr,dc_op,dc_data,dc_cmp, bram_rd_en,
+    dcache datacache (cpu_clk_i, dcache_flush, dcache_resp,cache_done, store_address,store_data,store_bm,store_valid, dc_req,dc_addr,dc_op,dc_data,dc_cmp, bram_rd_en,
     bram_rd_addr,bram_rd_data,dcache_a_opcode,dcache_a_param,dcache_a_size,dcache_a_address,dcache_a_mask,dcache_a_data,dcache_a_corrupt,dcache_a_valid,
     dcache_a_ready,  dcache_d_opcode, dcache_d_param, dcache_d_size, dcache_d_denied, dcache_d_data, dcache_d_corrupt, dcache_d_valid, dcache_d_ready,
-    load_valid,load_cache_set,load_set_valid,load_set);
+    load_cache_set,load_set_valid,load_set);
     assign p2_we_i = lq_wr_en|memsched_we; assign p2_we_dest = lq_wr_en ? lq_wr : memsched_dest; assign p2_we_data = lq_wr_en ? lq_wr_data : memsched_data;
     assign exception_o = agu_exception|excp_valid;
     assign exception_rob_o = agu_exception ? agu_exception_rob : excp_rob;

@@ -1,6 +1,6 @@
 module if1 #(parameter [31:0] START_ADDR = 32'h00000000) (
     input   wire logic              cpu_clk_i,
-
+    input   wire logic              reset_i,
     input   wire logic              flush_i,
     input   wire logic [31:0]       flush_pc_i,
     // BPU signals
@@ -36,7 +36,10 @@ module if1 #(parameter [31:0] START_ADDR = 32'h00000000) (
     assign if1_current_pc_o = program_counter;
     initial if2_vld_o = 0;
     always_ff @(posedge cpu_clk_i) begin
-        if (flush_i) begin
+        if (reset_i) begin
+            program_counter <= START_ADDR;
+        end
+        else if (flush_i) begin
             program_counter <= flush_pc_i;
             if2_vld_o <= 0;
         end else if (!if2_busy_i) begin

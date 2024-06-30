@@ -44,13 +44,16 @@ module icache (
     output       logic                      icache_a_corrupt,
     output       logic                      icache_a_valid,
     input   wire logic                      icache_a_ready,
-
+    /* verilator lint_off UNUSEDSIGNAL */
     input   wire logic [2:0]                icache_d_opcode,
     input   wire logic [1:0]                icache_d_param,
     input   wire logic [3:0]                icache_d_size,
     input   wire logic                      icache_d_denied,
+    /* verilator lint_on UNUSEDSIGNAL */
     input   wire logic [31:0]               icache_d_data,
+    /* verilator lint_off UNUSEDSIGNAL */
     input   wire logic                      icache_d_corrupt,
+    /* verilator lint_on UNUSEDSIGNAL */
     input   wire logic                      icache_d_valid,
     output  wire logic                      icache_d_ready
 );
@@ -69,8 +72,8 @@ module icache (
         working_excp, working_excp_valid, working_btb_index, btb_way
     }, working_valid, busy_o, {if2_sip_ppc_i, btb_target_i, btb_btype_i, btb_vld_i, btb_bm_pred_i, if2_sip_vpc_i, if2_sip_excp_code_i, if2_sip_excp_vld_i, btb_index_i, btb_way_i}, if2_vld_i
     );
-    reg [18:0] tags0 [0:63]; reg [18:0] tags1 [0:63];// from addr[31:0], addr[31:12] is extracted, and addr[12:7] used for index, addr[6:0] is offset
-    reg valid0 [0:63];reg valid1 [0:63]; reg mru [0:63];
+    reg [19:0] tags0 [0:31]; reg [19:0] tags1 [0:31];// from addr[31:0], addr[31:12] is extracted, and addr[12:7] used for index, addr[6:0] is offset
+    reg valid0 [0:31];reg valid1 [0:31]; reg [1:0] rr = 2'b01;
     wire req_not_found;
     
 
@@ -79,9 +82,11 @@ module icache (
     reg missed_way = 0;
     assign flush_resp_o = cache_fsm==IDLE;
     assign icache_d_ready = 1'b1;
-    reg [5:0] counter = 0;
+    reg [4:0] counter = 0;
+    /* verilator lint_off UNUSEDSIGNAL */
     wire [31:0] used_address = stall ? missed_address : working_addr;
-    wire [1:0] present = {tags1[used_address[12:7]]==used_address[31:13] && valid1[used_address[12:7]], tags0[used_address[12:7]]==used_address[31:13] && valid0[used_address[12:7]]};
+    /* verilator lint_on UNUSEDSIGNAL */
+    wire [1:0] present = {tags1[used_address[11:7]]==used_address[31:12] && valid1[used_address[11:7]], tags0[used_address[11:7]]==used_address[31:12] && valid0[used_address[11:7]]};
     assign req_not_found = working_valid&!(|present);
     
     initial begin
@@ -89,25 +94,29 @@ module icache (
             tags0[x] = 0;tags1[x] = 0;
         end
         for (integer x = 0; x < 64; x++) begin
-            valid0[x] = 0;valid1[x] = 0; mru[x] = 0;
+            valid0[x] = 0;valid1[x] = 0;
         end
     end
-    wire [9:0] ram_addr;
+    wire [8:0] ram_addr;
     wire [63:0] ram_data;
     assign instruction_o = ram_data; // When busy_i true, data must be held stable.
-    assign ram_addr = stall ? missed_address[12:3] : working_addr[12:3];
-    wire mru_replacement = (valid0[missed_address[12:7]]&&valid1[missed_address[12:7]]);
+    assign ram_addr = stall ? missed_address[11:3] : working_addr[11:3];
+    wire [1:0] valids = {valid1[missed_address[11:7]],valid0[missed_address[11:7]]};
+    wire replacement = &valids ? rr[1] : valids[1];
     wire rd_en = (cache_fsm==IDLE && !busy_i);
     wire wr_en = cache_fsm==MISS_RESP && icache_d_ready && icache_d_valid & counter[0];
     reg [31:0] buffer = 0;
+    wire [9:0] wr_addr;
+    assign wr_addr = {replacement, missed_address[11:7] , counter[4:1]};
     braminst sram0 (
-        cpu_clk_i, rd_en, {!present[0], ram_addr}, ram_data, wr_en, {(mru_replacement&!mru[missed_address[12:7]])||(!mru_replacement&valid0[missed_address[12:7]]), {missed_address[12:7], counter[4:1]}}, {icache_d_data, buffer}
+        cpu_clk_i, rd_en, {!present[0], ram_addr}, ram_data, wr_en, wr_addr, {icache_d_data, buffer}
     );
     reg block = 0;
     initial hit_o = 0;
     always_ff @(posedge cpu_clk_i) begin
         case (cache_fsm)
             IDLE: begin
+                rr <= {rr[0], rr[1]};
                 if (flush_i) begin
                     hit_o <= 0;
                     stall <= 0;
@@ -158,6 +167,7 @@ module icache (
                 end
             end
             MISS_REQ: begin
+                rr <= {rr[0], rr[1]};
                 icache_a_address <= {missed_address[31:7], 7'h00};
                 icache_a_corrupt <= 1'b0;
                 icache_a_data <= 32'h00000000;
@@ -171,14 +181,13 @@ module icache (
             MISS_RESP: begin
                 icache_a_valid <= icache_a_ready ? 0 : icache_a_valid;
                 if (icache_d_ready&icache_d_valid) begin
-                    if (counter==6'b011111) begin
-                        counter <= 6'b000000;
+                    if (counter==5'b11111) begin
+                        counter <= 5'b00000;
                         cache_fsm <= IDLE;
-                        tags0[missed_address[12:7]] <= (mru_replacement&mru[missed_address[12:7]])||(!mru_replacement&!valid0[missed_address[12:7]]) ? missed_address[31:13] : tags0[missed_address[12:7]];
-                        valid0[missed_address[12:7]] <= (mru_replacement&mru[missed_address[12:7]])||(!mru_replacement&!valid0[missed_address[12:7]]) ? 1'b1 : valid0[missed_address[12:7]];
-                        tags1[missed_address[12:7]] <= (mru_replacement&!mru[missed_address[12:7]])||(!mru_replacement&valid0[missed_address[12:7]]) ? missed_address[31:13] : tags1[missed_address[12:7]];
-                        valid1[missed_address[12:7]] <= (mru_replacement&!mru[missed_address[12:7]])||(!mru_replacement&valid0[missed_address[12:7]]) ? 1'b1 : valid1[missed_address[12:7]];
-                        mru[missed_address[12:7]] <= (mru_replacement&!mru[missed_address[12:7]])||(!mru_replacement&valid0[missed_address[12:7]]);
+                        tags0[missed_address[11:7]] <= !replacement ? missed_address[31:12] : tags0[missed_address[11:7]];
+                        valid0[missed_address[11:7]] <= !replacement ? 1'b1 : valid0[missed_address[11:7]];
+                        tags1[missed_address[11:7]] <= replacement ? missed_address[31:12] : tags1[missed_address[11:7]];
+                        valid1[missed_address[11:7]] <= replacement ? 1'b1 : valid1[missed_address[11:7]];
                     end else begin
                         counter <= counter + 1'b1;
                     end
@@ -186,7 +195,8 @@ module icache (
                 end
             end
             CFLUSH: begin
-                if (counter == 6'b111111) begin
+                rr <= {rr[0], rr[1]};
+                if (counter == 5'b11111) begin
                     cache_fsm <= IDLE;
                     valid0[counter] <= 0;valid1[counter] <= 0;
                     counter <= 0;

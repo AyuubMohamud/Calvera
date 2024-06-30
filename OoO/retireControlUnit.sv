@@ -258,12 +258,12 @@ module retireControlUnit (
                 btb_mod <= exception_code[4]&backendException;
             end
             WipeInstructionCache: begin
-                if (icache_idle) begin
+                if (icache_idle&&sqb_empty) begin
                     retire_control_state <= Await;
                 end
             end
             WipeTlbs: begin
-                if (mmu_idle) begin
+                if (mmu_idle&&sqb_empty) begin
                     retire_control_state <= Await;
                 end
             end
@@ -277,7 +277,7 @@ module retireControlUnit (
                 end
             end
             Await: begin
-                if (icache_idle&&mmu_idle&&sqb_empty) begin
+                if (icache_idle&&mmu_idle) begin
                     retire_control_state <= ReclaimAndRecover;
                 end
             end
@@ -286,12 +286,12 @@ module retireControlUnit (
             end
         endcase
     end
-    assign mmu_flush = mmu_idle&&(retire_control_state==WipeTlbs); assign icache_flush = icache_idle&&(retire_control_state==WipeInstructionCache);
+    assign mmu_flush = mmu_idle&&(retire_control_state==WipeTlbs)&&sqb_empty; assign icache_flush = icache_idle&&sqb_empty&&(retire_control_state==WipeInstructionCache);
     assign c1_btb_vpc_o = c1_btb_vpc;
     assign c1_btb_target_o = c1_btb_target;
     assign c1_cntr_pred_o = c1_cntr_pred;
     assign c1_bnch_tkn_o = c1_bnch_tkn;
     assign c1_bnch_type_o = c1_bnch_type;
     assign c1_bnch_present_o = c1_bnch_present;
-    assign c1_btb_mod_o = (retire_control_state==Await)&&mmu_idle&&icache_idle&&sqb_empty&&btb_mod;
+    assign c1_btb_mod_o = (retire_control_state==Await)&&mmu_idle&&icache_idle&&btb_mod;
 endmodule

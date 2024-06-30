@@ -4,6 +4,7 @@ module frontend #(parameter [31:0] START_ADDR = 32'h00000000) (
     input   wire logic                          tw,
     input   wire logic                          tvm,
     input   wire logic                          tsr,
+    input   wire logic                          reset_i,
     input   wire logic                          flush_i,
     input   wire logic [31:0]                   flush_address_i,
 
@@ -115,10 +116,10 @@ module frontend #(parameter [31:0] START_ADDR = 32'h00000000) (
     wire logic [31:0]       if2_btb_target_o;
     wire logic              if2_btb_hit;
     wire logic              if2_btb_way;
-    if1 #(START_ADDR) if1stage (cpu_clock_i, flush_i, flush_address_i, if1_current_pc_o, valid_cyc_o, btb_btype_i, btb_bm_pred_i, btb_index_i, btb_target_i, btb_vld_i, btb_way_i, 
+    if1 #(START_ADDR) if1stage (cpu_clock_i,reset_i, flush_i, flush_address_i, if1_current_pc_o, valid_cyc_o, btb_btype_i, btb_bm_pred_i, btb_index_i, btb_target_i, btb_vld_i, btb_way_i, 
     if2_busy_i, if2_excp_code_o, if2_excp_vld_o, if2_vld_o, if2_sip_vpc_o, if2_btype_o, if2_bm_pred_o, if2_btb_target_o, if2_btb_index, if2_btb_hit, if2_btb_way);
 
-    btb branchTargetBuffer (cpu_clock_i, flush_i, if1_current_pc_o, valid_cyc_o, btb_btype_i, btb_bm_pred_i, btb_target_i, btb_vld_i, btb_index_i, btb_way_i,
+    btb branchTargetBuffer (cpu_clock_i, flush_i|reset_i, if1_current_pc_o, valid_cyc_o, btb_btype_i, btb_bm_pred_i, btb_target_i, btb_vld_i, btb_index_i, btb_way_i,
     c1_btb_vpc_i, c1_btb_target_i, c1_cntr_pred_i, c1_bnch_tkn_i, c1_bnch_type_i, c1_bnch_present_i, c1_btb_mod_i, c1_btb_way_i, c1_btb_bm_i);
     logic                       ic_valid_o;
     logic [31:0]                ic_ppc_o;
@@ -147,13 +148,13 @@ module frontend #(parameter [31:0] START_ADDR = 32'h00000000) (
     wire logic                      pdc_btb_vld_o;
     wire logic                      pdc_btb_way_o;
     wire logic                      pdc_busy_i;
-    icache instructionCache (cpu_clock_i, flush_i, ic_valid_o,ic_ppc_o, ic_sip_vpc_o,ic_sip_excp_code_o,ic_sip_excp_vld_o,ic_btb_index_o,ic_btb_btype_o,
+    icache instructionCache (cpu_clock_i, flush_i|reset_i, ic_valid_o,ic_ppc_o, ic_sip_vpc_o,ic_sip_excp_code_o,ic_sip_excp_vld_o,ic_btb_index_o,ic_btb_btype_o,
     ic_btb_bm_pred_o,ic_btb_target_o,ic_btb_vld_o,ic_btb_way_o,ic_busy_i, pdc_hit_o, pdc_instruction_o, pdc_sip_vpc_o, pdc_sip_excp_code_o, pdc_sip_excp_vld_o, 
     pdc_btb_index_o, pdc_btb_btype_o, pdc_btb_bm_pred_o, pdc_btb_target_o, pdc_btb_vld_o, pdc_btb_way_o, pdc_busy_i, scp_op_i,scp_vld_i,
     flush_resp_o,icache_a_opcode, icache_a_param, icache_a_size, icache_a_address, icache_a_mask, icache_a_data, icache_a_corrupt, icache_a_valid,
     icache_a_ready, icache_d_opcode, icache_d_param, icache_d_size, icache_d_denied, icache_d_data, icache_d_corrupt, icache_d_valid, icache_d_ready);
 
-    predecode predecoder (cpu_clock_i, flush_i, current_privlidge, tw, tvm, tsr, pdc_hit_o,pdc_instruction_o,pdc_sip_vpc_o,pdc_sip_excp_code_o,pdc_sip_excp_vld_o, 
+    predecode predecoder (cpu_clock_i, flush_i|reset_i, current_privlidge, tw, tvm, tsr, pdc_hit_o,pdc_instruction_o,pdc_sip_vpc_o,pdc_sip_excp_code_o,pdc_sip_excp_vld_o, 
     pdc_btb_index_o,pdc_btb_btype_o,pdc_btb_bm_pred_o,pdc_btb_target_o,pdc_btb_vld_o,pdc_btb_way_o,pdc_busy_i, ins0_port_o,
     ins0_dnagn_o, ins0_alu_type_o, ins0_alu_opcode_o, ins0_alu_imm_o, ins0_ios_type_o, ins0_ios_opcode_o, ins0_special_o, ins0_rs1_o, ins0_rs2_o, ins0_dest_o, ins0_imm_o,
     ins0_reg_props_o, ins0_dnr_o, ins0_mov_elim_o, ins0_excp_valid_o, ins0_excp_code_o, ins1_port_o, ins1_dnagn_o, ins1_alu_type_o, ins1_alu_opcode_o, ins1_alu_imm_o,

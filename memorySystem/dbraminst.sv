@@ -1,13 +1,13 @@
 module dbraminst (
     input   wire logic clk,
     input   wire logic        rd_en,
-    input   wire logic [11:0] rd_addr,
+    input   wire logic [10:0] rd_addr,
     output       logic [31:0] rd_data,
     input   wire logic [3:0]  wr_en,
-    input   wire logic [11:0] wr_addr,
+    input   wire logic [10:0] wr_addr,
     input   wire logic [31:0] wr_data
 );
-    reg [31:0] ram [0:4095];
+    reg [31:0] ram [0:2047];
     always_ff @(posedge clk) begin
         if (rd_en) begin
             rd_data <= ram[rd_addr];

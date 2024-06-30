@@ -1,4 +1,4 @@
-module tmu #(parameter HARTID = 0) (
+module csrfile #(parameter HARTID = 0) (
     input   wire logic                          cpu_clock_i,
     // CSR Interface
     input   wire logic [31:0]                   tmu_data_i,

@@ -47,11 +47,11 @@ module memory_scheduler (
     input  wire  logic  [31:0]                  result_i,
     input  wire  logic                          wb_valid_i,
     // csrfile inputs
-    output   logic [31:0]                   tmu_data_o,
-    output   logic [11:0]                   tmu_address_o,
-    output   logic [1:0]                    tmu_opcode_o,
-    output   logic                          tmu_wr_en,
-    output   logic                          tmu_valid_o,
+    output   logic [31:0]                       tmu_data_o,
+    output   logic [11:0]                       tmu_address_o,
+    output   logic [1:0]                        tmu_opcode_o,
+    output   logic                              tmu_wr_en,
+    output   logic                              tmu_valid_o,
     input   wire logic                          tmu_done_i,
     input   wire logic                          tmu_excp_i,
     input   wire logic [31:0]                   tmu_data_i,
@@ -66,7 +66,10 @@ module memory_scheduler (
     output  wire logic [3:0]                    exception_code_o,
     output  wire logic                          p2_we_i,
     output  wire logic [31:0]                   p2_we_data,
-    output  wire logic [5:0]                    p2_we_dest
+    output  wire logic [5:0]                    p2_we_dest,
+
+    output  wire logic                          dflush_o,
+    input   wire logic                          d_can_flush
 );
     initial tmu_valid_o = 0; initial lsu_vld_o = 0; initial cu_valid_o = 0;
     wire empty;
@@ -175,11 +178,11 @@ module memory_scheduler (
     end
     always_ff @(posedge cpu_clk_i) begin : fence_logic
         if (fence_exec) begin
-            if ((store_buffer_empty)) begin
+            if ((store_buffer_empty&d_can_flush)) begin
                 fence_exec <= 0;
             end
         end
-        else if ((!flush_i&can_commit_non_specs&performing_system_operation&(packet_type[1])&!empty)) begin
+        else if ((!flush_i&can_commit_non_specs&performing_system_operation&(packet_type[1])&!empty&d_can_flush)) begin
             fence_exec <= 1;
         end
     end
@@ -191,4 +194,5 @@ module memory_scheduler (
     assign exception_o = tmu_done_i&tmu_excp_i;
     assign exception_code_o = 4'd2;
     assign exception_rob_o = packet_rob;
+    assign dflush_o = fence_exec&store_buffer_empty&d_can_flush;
 endmodule

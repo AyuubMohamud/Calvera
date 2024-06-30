@@ -1,5 +1,6 @@
 module calvera #(parameter [31:0] START_ADDR = 32'h0, parameter HARTID = 0) (
     input   wire logic                      cpu_clock_i,
+    input   wire logic                      cpu_reset_i,
     // TileLink Bus Master Uncached Heavyweight
     output       logic [2:0]                icache_a_opcode,
     output       logic [2:0]                icache_a_param,
@@ -102,7 +103,7 @@ wire logic [31:0]                   mepc_o;
 wire logic [31:0]                   mtvec_o;
 wire logic [31:0]                   stvec_o;
 
-    tmu #(.HARTID(HARTID)) csrfile (cpu_clock_i,tmu_data_i,tmu_address_i,tmu_opcode_i,tmu_wr_en,tmu_valid_i,tmu_done_o,tmu_excp_o,tmu_data_o,mret,sret,take_exception,
+    csrfile #(.HARTID(HARTID)) csrfile (cpu_clock_i,tmu_data_i,tmu_address_i,tmu_opcode_i,tmu_wr_en,tmu_valid_i,tmu_done_o,tmu_excp_o,tmu_data_o,mret,sret,take_exception,
     take_interrupt,tmu_go_to_S,tmu_epc_i,tmu_mtval_i,tmu_mcause_i,tmu_msip_i,tmu_mtip_i,tmu_meip_i,tmu_seip_i,tmu_mip_o,tmu_sip_o,mie_o,sie_o,mideleg_o,
     medeleg_o,tw,tvm,tsr,inc_commit0,inc_commit1,satp_o,mxr,sum,real_privilege,effc_privilege,sepc_o,mepc_o,mtvec_o,stvec_o);
     wire logic [31:0]               itlb_virt_addr_i;
@@ -181,7 +182,7 @@ wire logic [31:0]                   stvec_o;
     wire logic                     c1_btb_mod_i = c1_btb_mod_o;
     wire logic                     c1_btb_way_i;
     wire logic                     c1_btb_bm_i;
-    frontend #(START_ADDR) frontend0 (cpu_clock_i, real_privilege, tw, tvm, tsr, full_flush, flush_addr, itlb_virt_addr_i,itlb_virt_addr_vld_i,itlb_translated_addr_o,
+    frontend #(START_ADDR) frontend0 (cpu_clock_i, real_privilege, tw, tvm, tsr, cpu_reset_i, full_flush, flush_addr, itlb_virt_addr_i,itlb_virt_addr_vld_i,itlb_translated_addr_o,
     itlb_excp_code_o,itlb_excp_code_vld_o,itlb_ans_vld_o, 2'b00, icache_flush, icache_idle, icache_a_opcode,icache_a_param,icache_a_size,icache_a_address,
     icache_a_mask,icache_a_data,icache_a_corrupt,icache_a_valid,icache_a_ready,icache_d_opcode,icache_d_param,icache_d_size,icache_d_denied,icache_d_data,
     icache_d_corrupt,icache_d_valid,icache_d_ready, ins0_port_o, ins0_dnagn_o, ins0_alu_type_o, ins0_alu_opcode_o, ins0_alu_imm_o, ins0_ios_type_o, ins0_ios_opcode_o, 

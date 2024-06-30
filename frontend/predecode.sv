@@ -218,6 +218,5 @@ module predecode (
         end else if (!rn_busy_i&!rv_valid) begin
             valid_o <= 0;
         end
-
     end
 endmodule

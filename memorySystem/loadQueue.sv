@@ -30,9 +30,8 @@ module loadQueue (
     input   wire logic                          conflict_res_valid_i,
     // sram
     output  wire logic                          bram_rd_en,
-    output  wire logic [11:0]                   bram_rd_addr,
+    output  wire logic [10:0]                   bram_rd_addr,
     input   wire logic [31:0]                   bram_rd_data,
-    output  wire logic                          load_valid_o,
     output  wire logic [23:0]                   load_cache_set_o,
     input   wire logic                          load_set_valid_i,
     input   wire logic                          load_set_i,
@@ -104,13 +103,12 @@ module loadQueue (
             end
         end
     end
-    assign bram_rd_en = 1; assign bram_rd_addr = {load_set_i, this_cycle_from_lsu ? lsu_addr[12:2] : mlsu_addr[12:2]};
+    assign bram_rd_en = 1; assign bram_rd_addr = {load_set_i, this_cycle_from_lsu ? lsu_addr[11:2] : mlsu_addr[11:2]};
     wire [31:0] root_mem_data = {nx2_bm[3] ? nx2_cdat[31:24] : bram_rd_data[31:24], nx2_bm[2] ? nx2_cdat[23:16] : bram_rd_data[23:16],
     nx2_bm[1] ? nx2_cdat[15:8] : bram_rd_data[15:8], nx2_bm[0] ? nx2_cdat[7:0] : bram_rd_data[7:0]};
     assign memdata = nx2_op[1:0]==2'b10 ?  root_mem_data : nx2_op[1:0]==1 ? (nx2_addr[1] ? {16'h0000, root_mem_data[31:16]} :
     {16'h0000, root_mem_data[15:0]}) : nx2_addr[1:0]==2'b00 ? {24'h000000,root_mem_data[7:0]} : nx2_addr[1:0]==2'b01 ? {24'h000000,root_mem_data[15:8]} : nx2_addr[1:0]==2'b10 ? {24'h000000,root_mem_data[23:16]} :
     {24'h000000,root_mem_data[31:24]};
-    assign load_valid_o = flush_i ? 1'b0 : (dc_cmp&!dc_addr[31])|(lsu_vld&this_cycle_from_lsu&!busy&!rob_lock&!current_req_miss);
     assign ciff_o = (nx2_vd);
     always_ff @(posedge cpu_clock_i) begin
         nx2_vd <= flush_i ? 1'b0 : (dc_cmp)|(lsu_vld&this_cycle_from_lsu&!busy&!rob_lock&!current_req_miss);

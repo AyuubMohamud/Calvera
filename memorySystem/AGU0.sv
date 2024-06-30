@@ -90,38 +90,32 @@ module AGU0 (
     end
     wire misaligned = bm==4'b0110;
     always_ff @(posedge cpu_clock_i) begin
-        if (!enqueue_full_i&!lq_full_i&lsu_vld) begin
-            if (lsu_op[3]&!misaligned) begin
-                enqueue_address_o <= translated_addr_i[31:2];
-                enqueue_bm_o <= bm;
-                enqueue_data_o <= store_data;
-                enqueue_io_o <= translated_addr_i[31];
-                enqueue_en_o <= ans_vld_i&!excp_code_vld_i;
-                enqueue_rob_o <= lsu_rob[4:0];
-            end else begin
-                enqueue_en_o <= 0;
-            end
+        if (!enqueue_full_i&!lq_full_i&lsu_vld&ans_vld_i&!misaligned&lsu_op[3]) begin
+            enqueue_address_o <= translated_addr_i[31:2];
+            enqueue_bm_o <= bm;
+            enqueue_data_o <= store_data;
+            enqueue_io_o <= translated_addr_i[31];
+            enqueue_en_o <= !excp_code_vld_i;
+            enqueue_rob_o <= lsu_rob[4:0];
         end else if (!enqueue_full_i) begin
             enqueue_en_o <= 0;
         end
     end
 
     always_ff @(posedge cpu_clock_i) begin
-        if (!enqueue_full_i&!lq_full_i) begin
-            if (!lsu_op[3]&!misaligned) begin
-                conflict_address_o <= translated_addr_i[31:2];
-                conflict_bm_o <= bm;
-            end
+        if (!enqueue_full_i&!lq_full_i&!lsu_op[3]&!misaligned&ans_vld_i&!excp_code_vld_i) begin
+            conflict_address_o <= translated_addr_i[31:2];
+            conflict_bm_o <= bm;
         end
     end
     initial lq_valid_o = 0; initial excp_valid = 0; initial enqueue_en_o = 0;
     always_ff @(posedge cpu_clock_i) begin
-        if (!enqueue_full_i&!lq_full_i) begin
+        if (!enqueue_full_i&!lq_full_i&!lsu_op[3]&&ans_vld_i&&!excp_code_vld_i&lsu_vld) begin
             lq_addr_o <= translated_addr_i;
             lq_dest_o <= lsu_dest;
             lq_ld_type_o <= lsu_op[2:0];
             lq_rob_o <= lsu_rob;
-            lq_valid_o <= !lsu_op[3]&&ans_vld_i&&!excp_code_vld_i&lsu_vld;
+            lq_valid_o <= 1;
         end else if (!lq_full_i) begin
             lq_valid_o <= 0;
         end
