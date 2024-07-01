@@ -34,6 +34,9 @@ module btb (
     output  wire logic                          btb_vld_o,
     output  wire logic                          btb_index_o,
     output  wire logic                          btb_way_present_o,
+    // decode
+    input   wire logic                          btb_correct_i,
+    input   wire logic [31:0]                   btb_correct_pc,
     // C1 I/O
     input   wire logic [31:0]                   c1_btb_vpc_i, //! SIP PC
     input   wire logic [31:0]                   c1_btb_target_i, //! SIP Target **if** taken
@@ -56,10 +59,10 @@ module btb (
     // Hence we can ignore anything coming from the decode unit
     reg random_replacement;
     
-    wire [4:0] midx = c1_btb_mod_i ? c1_btb_vpc_i[7:3] : if1_current_pc_i[7:3];
+    wire [4:0] midx = c1_btb_mod_i ? c1_btb_vpc_i[7:3] : btb_correct_i ? btb_correct_pc[7:3] : if1_current_pc_i[7:3];
     wire [1:0] val_to_be_written;
     assign val_to_be_written = c1_bnch_tkn_i ? (c1_cntr_pred_i == 2'b11 ? 2'b11 : c1_cntr_pred_i + 1'b1) : (c1_cntr_pred_i == 2'b00 ? 2'b00 : c1_cntr_pred_i - 1'b1);
-    wire [11:0] hash = c1_btb_mod_i ? (c1_btb_vpc_i[31:20])^(c1_btb_vpc_i[19:8]) :(if1_current_pc_i[31:20])^(if1_current_pc_i[19:8]);
+    wire [11:0] hash = c1_btb_mod_i ? (c1_btb_vpc_i[31:20])^(c1_btb_vpc_i[19:8]) : btb_correct_i ? (btb_correct_pc[31:20])^(btb_correct_pc[19:8]) : (if1_current_pc_i[31:20])^(if1_current_pc_i[19:8]);
     wire [1:0] match = {
         tag1[midx]==hash,tag0[midx]==hash
     };
@@ -88,6 +91,10 @@ module btb (
                 tag0[{midx}] <= replacement_idx==0 ? hash : tag0[midx];tag1[{midx}] <= replacement_idx==1 ? hash : tag1[midx];
                 idx[{replacement_idx, midx}] <= c1_btb_vpc_i[2];
             end
+        end else if (btb_correct_i) begin
+            bimodal_counters[{~present[0],midx}] <= c1_bnch_present_i ? val_to_be_written : 0; btype[{~present[0],midx}] <= c1_bnch_type_i; target[{~present[0],midx}] <= c1_btb_target_i[31:2]; // here tags are not changed
+            valid0[midx] <= present[0] ?  0 : valid0[midx];valid1[midx] <= present[1] ? 0: valid1[midx];
+            idx[{~present[0], midx}] <= 0;
         end else if (c1_btb_bm_i&!reset_i) begin
             bimodal_counters[{c1_btb_way_i,c1_btb_vpc_i[7:3]}] <= val_to_be_written;
         end

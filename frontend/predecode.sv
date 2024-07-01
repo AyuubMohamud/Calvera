@@ -5,6 +5,8 @@ module predecode (
     input   wire logic                  tw,
     input   wire logic                  tvm,
     input   wire logic                  tsr,
+    input   wire logic                  icache_idle,
+    input   wire logic                  mmu_idle,
     input   wire logic                  icache_valid_i,
     input   wire logic [63:0]           instruction_i,
     input   wire logic [31:0]           if2_sip_vpc_i,
@@ -62,15 +64,19 @@ module predecode (
     output       logic                  btb_idx_o,
     output       logic                  btb_way_o,
     output       logic                  valid_o,
-    input   wire logic                  rn_busy_i
+    input   wire logic                  rn_busy_i,
+
+    output  wire logic                  branch_correction_flush,
+    output  wire logic [31:0]           branch_correction_pc
 );
     wire [63:0] rv_instruction_i_p;
     wire [63:0] working_ins;
     wire [31:0] rv_ppc_i;
     wire [31:0] rv_target; wire [1:0] rv_btype; wire [1:0] rv_bm_pred; wire rv_btb_vld; wire excp_vld; wire [3:0] excp_code;
+    reg shutdown_frontend = 0;
     wire rv_valid; wire btb_idx; wire btb_way;
     skdbf #(.DW(140)) skidbuffer (
-        cpu_clk_i, flush_i, rn_busy_i, {working_ins, rv_ppc_i, rv_target, rv_btype, rv_bm_pred, rv_btb_vld, excp_vld, excp_code,btb_idx,btb_way}, rv_valid, busy_o, {instruction_i, if2_sip_vpc_i, btb_target_i, btb_btype_i,
+        cpu_clk_i, flush_i|branch_correction_flush, rn_busy_i|shutdown_frontend, {working_ins, rv_ppc_i, rv_target, rv_btype, rv_bm_pred, rv_btb_vld, excp_vld, excp_code,btb_idx,btb_way}, rv_valid, busy_o, {instruction_i, if2_sip_vpc_i, btb_target_i, btb_btype_i,
         btb_bm_pred_i, btb_vld_i, if2_sip_excp_vld_i, if2_sip_excp_code_i, if2_btb_index,btb_way_i}, icache_valid_i
     );
     assign rv_instruction_i_p[31:0] = rv_ppc_i[2] ? working_ins[63:32] : working_ins[31:0];
@@ -166,8 +172,29 @@ module predecode (
     wire [31:0] auipcImmediate2 = {rv_instruction_i2[31:12], 12'h000};
     wire [31:0] storeImmediate2 = {{20{rv_instruction_i2[31]}}, rv_instruction_i2[31:25], rv_instruction_i2[11:7]};
     initial valid_o = 0;
+    wire ins1_valid = !rv_ppc_i[2]&!(rv_btb_vld&(rv_target!={rv_ppc_i[31:3], 3'd4})&!btb_idx&(rv_btype[1] ? 1'b1 : rv_bm_pred[1]));
+
+    wire [1:0] branches_decoded = {(isJAL2|isJALR2|isCmpBranch2)&ins1_valid, isJAL|isJALR|isCmpBranch};
+    wire [1:0] branches_predicted = {rv_btb_vld&ins1_valid&btb_idx, rv_btb_vld&!btb_idx};
+    wire btb_correction = (!branches_decoded[0]&branches_predicted[0])|(!branches_decoded[1]&branches_predicted[1]);
+    
+    reg [31:0] address_to_correct;
     always_ff @(posedge cpu_clk_i) begin
         if (flush_i) begin
+            shutdown_frontend <= 0;
+        end else if (shutdown_frontend) begin
+            if (branch_correction_flush) begin
+                shutdown_frontend <= 0;
+            end
+        end else if (rv_valid&btb_correction) begin
+            address_to_correct <= rv_ppc_i;
+            shutdown_frontend <= 1;
+        end
+    end
+    assign branch_correction_flush = shutdown_frontend&icache_idle&&mmu_idle&!flush_i;
+    assign branch_correction_pc = address_to_correct;
+    always_ff @(posedge cpu_clk_i) begin
+        if (flush_i|branch_correction_flush) begin
             valid_o <= 0;
         end else if (!rn_busy_i&rv_valid) begin
             ins0_port_o <= !(isJAL|isJALR|isAUIPC|isLUI|(((isOP&(rv_instruction_i[31:25]!=7'b0000001))|isOPIMM))|isCmpBranch);
@@ -204,7 +231,7 @@ module predecode (
             ins1_dest_o <= rv_instruction_i2[11:7];
             ins1_imm_o <= isOPIMM2|isJALR2|isLoad2|isSystem2 ? jalrImmediate2 : isStore2 ? storeImmediate2 : isLUI2|isAUIPC2 ? auipcImmediate2 : isJAL2 ? jalImmediate2 : isCmpBranch2 ? cmpBranchImmediate2 : 0; 
             ins1_reg_props_o <= {(isOP2|isOPIMM2|isLoad2|isJAL2|isJALR2|isAUIPC2|isLUI2|((isCSRRW2|isCSRRC2|isCSRRS2)&isSystem2))&&(rv_instruction_i2[11:7]!=0), !(((isECALL2|isSRET2|isMRET2|isWFI2|isSFENCE_VMA2)&isSystem2)|isAUIPC2|isLUI2|isJAL2), isOP2|isCmpBranch2|isStore2};
-            ins1_valid_o <= !rv_ppc_i[2]&!(rv_btb_vld&(rv_target!={rv_ppc_i[31:3], 3'd4})&!btb_idx&(rv_btype[1] ? 1'b1 : rv_bm_pred[1]));
+            ins1_valid_o <= ins1_valid;
             btb_way_o <= btb_way;
             btb_idx_o <= btb_idx;
             btb_btype_o <= rv_btype;
@@ -212,7 +239,7 @@ module predecode (
             btb_target_o <= rv_target;
             btb_vld_o <= rv_btb_vld;
             insbundle_pc_o <= rv_ppc_i;
-            valid_o <= 1;
+            valid_o <= !btb_correction;
             ins0_dnr_o <= isSystem&(isCSRRC|isCSRRW|isCSRRS)&csr_imm;
             ins1_dnr_o <= isSystem&(isCSRRC2|isCSRRW2|isCSRRS2)&csr_imm2;
         end else if (!rn_busy_i&!rv_valid) begin

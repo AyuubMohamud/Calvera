@@ -52,7 +52,6 @@ module dtlb (
     output logic [19:0]                     vpn_o,
     output logic                            vpn_vld_o,
     output logic                            isWrite_o,
-    input   wire logic                      busy_i, // true on any cycle with any lsu activity
 
     input   wire logic                      resp_vld_i,
     input   wire logic                      is_superpage_i,
@@ -186,16 +185,11 @@ module dtlb (
                 valid1[s_idx] <= 0;
             end
             HPT_REQ: begin
-                if (busy_i) begin
-                    STATE <= HPT_REQ;
-                end
-                else begin
-                    vpn_vld_o <= 1'b1;
-                    STATE <= HPT_RESP;
-                end
+                vpn_vld_o <= 1'b1;
+                STATE <= HPT_RESP;
             end
             HPT_RESP: begin
-                vpn_vld_o <= busy_i ? vpn_vld_o : 1'b0;
+                vpn_vld_o <= resp_vld_i ? 1'b0 : vpn_vld_o;
                 if (resp_vld_i&!excp_vld_i) begin
                     valid0[idx] <= replaced_way[0] ? 1'b1 : valid0[idx];
                     valid1[idx] <= replaced_way[1]&!replaced_way[0] ? 1'b1 : valid1[idx];

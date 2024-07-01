@@ -253,13 +253,13 @@ module rename (
     assign ms_rn_btb_pack = rcu_pack[3:0];
     assign ms_rn_btb_wen = cyc_valid&!busy;
     assign ms_p0_data_o = {(btb_vld&!btb_idx)||((|ins0_alu_type[4:1])|(!ins0_alu_type_i[0])), p0_phys_reg, p1_phys_reg, {rcu_pack,1'b0}};
-    assign ms_p0_vld_o = (!ins0_port|(btb_vld&!btb_idx)|!ins0_mov_elim)&!ins0_excp_valid&cyc_valid&!busy;
+    assign ms_p0_vld_o = (!ins0_port|(btb_vld&!btb_idx))&!ins0_excp_valid&cyc_valid&!busy&!(ins0_mov_elim&!(ms_rn_btb_correct_o&!btb_idx&btb_vld));
     assign ms_p0_rs1_vld_o = ins0_reg_props[1]&!(ms_rn_btb_correct_o&!btb_idx&btb_vld);
     assign ms_p0_rs2_vld_o = ins0_reg_props[0]&!(ms_rn_btb_correct_o&!btb_idx&btb_vld);
     assign ms_p0_rs1_rdy = r0_i;
     assign ms_p0_rs2_rdy = r1_i;
     assign ms_p1_data_o = {(btb_vld&btb_idx)||((|ins1_alu_type[4:1])|(!ins1_alu_type_i[0])), p2_phys_reg, p3_phys_reg, {rcu_pack,1'b1}};
-    assign ms_p1_vld_o = (!ins1_port|(btb_vld&btb_idx)|!ins1_mov_elim)&!ins1_excp_valid&ins1_valid&cyc_valid&!busy;
+    assign ms_p1_vld_o = (!ins1_port|(btb_vld&btb_idx))&!ins1_excp_valid&ins1_valid&cyc_valid&!busy&!(ins1_mov_elim&!(ms_rn_btb_correct_o&btb_idx&btb_vld));
     assign ms_p1_rs1_vld_o = ins1_reg_props[1]&!(ms_rn_btb_correct_o&btb_idx&btb_vld);
     assign ms_p1_rs2_vld_o = ins1_reg_props[0]&!(ms_rn_btb_correct_o&btb_idx&btb_vld);
     assign ms_p1_rs1_rdy = r2_i;
@@ -272,7 +272,7 @@ module rename (
     assign rcu_ins0_new_preg=w0_phys_reg;
     assign rcu_ins0_excp_code=ins0_excp_code;
     assign rcu_ins0_excp_valid=ins0_excp_valid;
-    assign rcu_ins0_special=ins0_special&{5{!(ms_rn_btb_correct_o&!btb_idx&btb_vld)}};;
+    assign rcu_ins0_special=ins0_special&{5{!(ms_rn_btb_correct_o&!btb_idx&btb_vld)}};
     assign rcu_ins0_is_store=ins0_port&!ins0_dnagn&ins0_ios_type[3]&!ins0_excp_valid&&!(ms_rn_btb_correct_o&!btb_idx&btb_vld);
     assign rcu_ins1_is_mov_elim=ins1_mov_elim&&!(ms_rn_btb_correct_o&btb_idx&btb_vld);
     assign rcu_ins1_register_allocated=(ins1_reg_props[2]&!ins1_mov_elim)&!ins1_excp_valid&!(ins1_dest==0)&&ins1_valid&!(ms_rn_btb_correct_o&btb_idx&btb_vld);

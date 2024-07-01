@@ -51,7 +51,6 @@ module mmu (
 
     wire logic [19:0]    itlb_vpn;
     wire logic           itlb_vpn_vld;
-    wire logic           itlb_busy; // true on any cycle with any lsu activity
     wire logic           itlb_resp_vld;
     wire logic           itlb_is_superpage;
     wire logic [31:0]    itlb_assoc_pte;
@@ -60,7 +59,6 @@ module mmu (
     wire logic [19:0]    dtlb_vpn;
     wire logic           dtlb_vpn_vld;
     wire logic           isWrite;
-    wire logic           dtlb_busy; // true on any cycle with any lsu activity
     wire logic           dtlb_resp_vld;
     wire logic           dtlb_is_superpage;
     wire logic [31:0]    dtlb_assoc_pte;
@@ -80,7 +78,6 @@ module mmu (
     sfence_i, itlb_sfence_in_prog, itlb_sfence_cmplt_o, itlb_safe_to_flush_o,
     itlb_vpn,
     itlb_vpn_vld,
-    itlb_busy, // true on any cycle with any lsu activity
     itlb_resp_vld,
     itlb_is_superpage,
     itlb_assoc_pte,
@@ -92,7 +89,6 @@ module mmu (
     dtlb_vpn,
     dtlb_vpn_vld,
     isWrite,
-    dtlb_busy, // true on any cycle with any lsu activity
     dtlb_resp_vld,
     dtlb_is_superpage,
     dtlb_assoc_pte,
@@ -100,8 +96,8 @@ module mmu (
     dtlb_excp_vld
     );
     hpw hpw0 (
-        cpu_clk_i, flush_i, satp_i[19:0], hpw_safe_to_flush, itlb_vpn, itlb_vpn_vld, itlb_busy, itlb_resp_vld, itlb_is_superpage, itlb_assoc_pte, itlb_excp_code, itlb_excp_vld,
-        dtlb_vpn, dtlb_vpn_vld, isWrite, dtlb_busy, dtlb_resp_vld, dtlb_is_superpage, dtlb_assoc_pte, dtlb_excp_code, dtlb_excp_vld, hpw_a_opcode,
+        cpu_clk_i, flush_i, satp_i[19:0], hpw_safe_to_flush, itlb_vpn, itlb_vpn_vld, itlb_resp_vld, itlb_is_superpage, itlb_assoc_pte, itlb_excp_code, itlb_excp_vld,
+        dtlb_vpn, dtlb_vpn_vld, isWrite, dtlb_resp_vld, dtlb_is_superpage, dtlb_assoc_pte, dtlb_excp_code, dtlb_excp_vld, hpw_a_opcode,
         hpw_a_param,
         hpw_a_size,
         hpw_a_address,

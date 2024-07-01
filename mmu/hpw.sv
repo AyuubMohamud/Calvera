@@ -6,7 +6,6 @@ module hpw (
 
     input   wire logic [19:0]               itlb_virt_addr_i,
     input   wire logic                      itlb_virt_addr_vld_i,
-    output  wire logic                      itlb_busy_o, // true on any cycle with any lsu activity
     output       logic                      itlb_resp_vld_o,
     output       logic                      itlb_is_superpage_o,
     output       logic [31:0]               itlb_assoc_pte_o,
@@ -16,9 +15,8 @@ module hpw (
     input   wire logic [19:0]               dtlb_virt_addr_i,
     input   wire logic                      dtlb_virt_addr_vld_i,
     input   wire logic                      dtlb_is_write_i,
-    output       logic                      dtlb_busy_o, // true on any cycle with any lsu activity
-    output       logic                      dtlb_resp_vld_o,
-    output       logic                      dtlb_is_superpage_o,
+    output  wire logic                      dtlb_resp_vld_o,
+    output  wire logic                      dtlb_is_superpage_o,
     output       logic [31:0]               dtlb_assoc_pte_o,
     output       logic [3:0]                dtlb_excp_code_o,
     output       logic                      dtlb_excp_vld_o,
@@ -54,8 +52,6 @@ module hpw (
     reg [1:0] hpw_state = IDLE;
     reg [1:0] level = 0;
     reg [31:0] addr;
-    assign dtlb_busy_o = hpw_state!=IDLE;
-    assign itlb_busy_o = hpw_state!=IDLE || dtlb_virt_addr_vld_i;
     wire [9:0] va_vpn = origin ? level[1] ? itlb_virt_addr_i[19:10] : itlb_virt_addr_i[9:0] : level[1] ? dtlb_virt_addr_i[19:10] : dtlb_virt_addr_i[9:0];
 
     wire reserved_encoding = hpw_d_data[3:1]==3'b010||hpw_d_data[3:1]==3'b110;
@@ -64,6 +60,10 @@ module hpw (
     wire bad_superpage = |hpw_d_data[19:10] && level!=2'b01 && hpw_d_data[0] & |hpw_d_data[3:1];
     assign safe_to_flush_o = hpw_state==IDLE;
     initial hpw_a_valid = 0;
+    assign dtlb_is_superpage_o = level==2'b01;
+    assign itlb_is_superpage_o = level==2'b01;
+    assign dtlb_resp_vld_o = (!origin)&(hpw_state==FINISH);
+    assign itlb_resp_vld_o = (origin)&(hpw_state==FINISH);
     always_ff @(posedge cpu_clk_i) begin
         case (hpw_state)
             IDLE: begin
@@ -80,8 +80,6 @@ module hpw (
                         hpw_state <= FETCHPTE;
                     end
                 end
-                dtlb_resp_vld_o <= 0;
-                itlb_resp_vld_o <= 0;
             end
             FETCHPTE: begin
                 if (level!=2'b00 && !io) begin
@@ -121,13 +119,6 @@ module hpw (
                 end
             end
             FINISH: begin
-                if (~origin) begin
-                    dtlb_resp_vld_o <= 1;
-                    dtlb_is_superpage_o <= level==2'b01;
-                end else begin
-                    itlb_resp_vld_o <= 1;
-                    itlb_is_superpage_o <= level==2'b01; 
-                end
                 hpw_state <= IDLE;
             end
         endcase
