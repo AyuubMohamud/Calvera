@@ -197,9 +197,9 @@ module unifiedIntQueue (
         branch[11] <= shift_two[11] ? p1_data_i[18] : shift[11] ? p0_data_i[18] : branch[11];
         branch[10] <= shift_two[10] ? p0_data_i[18] : shift[10] ? branch[11] : branch[10];
         AV2[11] <= shift_two[11] ? p1_av2_temp&!flush_i&p1_vld_i : shift[11] ? p0_av2_temp&!flush_i&p0_vld_i : AV2l[11];
-        AV2[10] <= shift_two[10] ? p0_av2_temp&!flush_i&p0_vld_i : shift[10] ? AV2l[7] : AV2l[10];
+        AV2[10] <= shift_two[10] ? p0_av2_temp&!flush_i&p0_vld_i : shift[10] ? AV2l[11] : AV2l[10];
         AV1[11] <= shift_two[11] ? p1_av1_temp&!flush_i&p1_vld_i : shift[11] ? p0_av1_temp&!flush_i&p0_vld_i : AV1l[11];
-        AV1[10] <= shift_two[10] ? p0_av1_temp&!flush_i&p0_vld_i : shift[10] ? AV1l[7] : AV1l[10];
+        AV1[10] <= shift_two[10] ? p0_av1_temp&!flush_i&p0_vld_i : shift[10] ? AV1l[11] : AV1l[10];
     end
     logic [5:0] rs1;
     logic [5:0] rs2;
