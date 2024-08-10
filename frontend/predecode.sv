@@ -76,7 +76,7 @@ module predecode (
     reg shutdown_frontend = 0;
     wire rv_valid; wire btb_idx; wire btb_way;
     skdbf #(.DW(140)) skidbuffer (
-        cpu_clk_i, flush_i|branch_correction_flush, rn_busy_i|shutdown_frontend, {working_ins, rv_ppc_i, rv_target, rv_btype, rv_bm_pred, rv_btb_vld, excp_vld, excp_code,btb_idx,btb_way}, rv_valid, busy_o, {instruction_i, if2_sip_vpc_i, btb_target_i, btb_btype_i,
+        cpu_clk_i, flush_i|branch_correction_flush, rn_busy_i, {working_ins, rv_ppc_i, rv_target, rv_btype, rv_bm_pred, rv_btb_vld, excp_vld, excp_code,btb_idx,btb_way}, rv_valid, busy_o, {instruction_i, if2_sip_vpc_i, btb_target_i, btb_btype_i,
         btb_bm_pred_i, btb_vld_i, if2_sip_excp_vld_i, if2_sip_excp_code_i, if2_btb_index,btb_way_i}, icache_valid_i
     );
     assign rv_instruction_i_p[31:0] = rv_ppc_i[2] ? working_ins[63:32] : working_ins[31:0];
@@ -191,7 +191,7 @@ module predecode (
             shutdown_frontend <= 1;
         end
     end
-    assign branch_correction_flush = shutdown_frontend&icache_idle&&mmu_idle&!flush_i;
+    assign branch_correction_flush = shutdown_frontend&icache_idle&&mmu_idle&!flush_i&!rn_busy_i;
     assign branch_correction_pc = address_to_correct;
     always_ff @(posedge cpu_clk_i) begin
         if (flush_i|branch_correction_flush) begin
@@ -239,7 +239,7 @@ module predecode (
             btb_target_o <= rv_target;
             btb_vld_o <= rv_btb_vld;
             insbundle_pc_o <= rv_ppc_i;
-            valid_o <= !btb_correction;
+            valid_o <= !shutdown_frontend&!btb_correction;
             ins0_dnr_o <= isSystem&(isCSRRC|isCSRRW|isCSRRS)&csr_imm;
             ins1_dnr_o <= isSystem&(isCSRRC2|isCSRRW2|isCSRRS2)&csr_imm2;
         end else if (!rn_busy_i&!rv_valid) begin

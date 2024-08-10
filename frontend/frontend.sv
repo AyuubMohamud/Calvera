@@ -97,8 +97,7 @@ module frontend #(parameter [31:0] START_ADDR = 32'h00000000) (
     input   wire logic                          c1_btb_way_i,
     input   wire logic                          c1_btb_bm_i,
 
-    input   wire logic                          mmu_idle,
-    input   wire logic                          icache_idle
+    input   wire logic                          mmu_idle
 );
     wire logic [31:0]       if1_current_pc_o;
     wire logic              valid_cyc_o;
@@ -162,7 +161,7 @@ module frontend #(parameter [31:0] START_ADDR = 32'h00000000) (
     flush_resp_o,icache_a_opcode, icache_a_param, icache_a_size, icache_a_address, icache_a_mask, icache_a_data, icache_a_corrupt, icache_a_valid,
     icache_a_ready, icache_d_opcode, icache_d_param, icache_d_size, icache_d_denied, icache_d_data, icache_d_corrupt, icache_d_valid, icache_d_ready);
 
-    predecode predecoder (cpu_clock_i, flush_i|reset_i, current_privlidge, tw, tvm, tsr,  icache_idle, mmu_idle,pdc_hit_o,pdc_instruction_o,pdc_sip_vpc_o,pdc_sip_excp_code_o,pdc_sip_excp_vld_o, 
+    predecode predecoder (cpu_clock_i, flush_i|reset_i, current_privlidge, tw, tvm, tsr,  flush_resp_o, mmu_idle,pdc_hit_o,pdc_instruction_o,pdc_sip_vpc_o,pdc_sip_excp_code_o,pdc_sip_excp_vld_o, 
     pdc_btb_index_o,pdc_btb_btype_o,pdc_btb_bm_pred_o,pdc_btb_target_o,pdc_btb_vld_o,pdc_btb_way_o,pdc_busy_i, ins0_port_o,
     ins0_dnagn_o, ins0_alu_type_o, ins0_alu_opcode_o, ins0_alu_imm_o, ins0_ios_type_o, ins0_ios_opcode_o, ins0_special_o, ins0_rs1_o, ins0_rs2_o, ins0_dest_o, ins0_imm_o,
     ins0_reg_props_o, ins0_dnr_o, ins0_mov_elim_o, ins0_excp_valid_o, ins0_excp_code_o, ins1_port_o, ins1_dnagn_o, ins1_alu_type_o, ins1_alu_opcode_o, ins1_alu_imm_o,

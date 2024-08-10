@@ -190,7 +190,7 @@ wire logic [31:0]                   stvec_o;
     ins1_port_o, ins1_dnagn_o, ins1_alu_type_o, ins1_alu_opcode_o, ins1_alu_imm_o, ins1_ios_type_o, ins1_ios_opcode_o, ins1_special_o, ins1_rs1_o, ins1_rs2_o, 
     ins1_dest_o, ins1_imm_o, ins1_reg_props_o, ins1_dnr_o,  ins1_mov_elim_o, ins1_excp_valid_o, ins1_excp_code_o, ins1_valid_o, insbundle_pc_o, btb_btype_o, 
     btb_bm_pred_o, btb_target_o, btb_vld_o, btb_idx_o, btb_way_o, valid_o, rn_busy_i, c1_btb_vpc_i,c1_btb_target_i,c1_cntr_pred_i,c1_bnch_tkn_i,
-    c1_bnch_type_i,c1_bnch_present_i,c1_btb_mod_i,c1_btb_way_i,c1_btb_bm_i);
+    c1_bnch_type_i,c1_bnch_present_i,c1_btb_mod_i,c1_btb_way_i,c1_btb_bm_i,safe_to_flush_o);
 
     wire logic [3:0]                        ms_ins0_opcode_o;
     wire logic [4:0]                        ms_ins0_ins_type;
