@@ -40,3 +40,5 @@ All RISC-V instructions supported work during simulation, M-mode mostly tested, 
 Runs at up to 100MHZ on a Arty A7-100T, with Vivado Synthesis Defaults, and takes up ~9600 LUT6s, 4 DSP48E1s, and 4 BRAM36E1s.
 
 This core supports a regular TileLink Uncached Heavyweight bus at 32-bit data width, and 32-bit address width.
+
+This core is licenced under the CERN OHL v2.0 - Weakly Reciprocal.
